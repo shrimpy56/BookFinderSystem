@@ -20,15 +20,19 @@ public class Client {
 
             TTransport transport = new TSocket(serverIP, serverPort);
             TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-            SuperNode.Client client = new SuperNode.Client(protocol);
+            SuperNode.Client superClient = new SuperNode.Client(protocol);
             //Try to connect
             transport.open();
-            NodeInfo node = client.getNode();
+            NodeInfo node = superClient.getNode();
             transport.close();
 
             System.out.println("Usage: set <title> <genre> [-withlogs]");
             System.out.println("Usage: set <filename> [-withlogs]");
             System.out.println("Usage: get <title> [-withlogs]");
+
+            transport = new TSocket(node.ip, node.port);
+            protocol = new TBinaryProtocol(new TFramedTransport(transport));
+            Node.Client client = new Node.Client(protocol);
 
             Scanner input = new Scanner(System.in);
             while (true)
@@ -37,19 +41,15 @@ public class Client {
                 String[] params = line.split(" ");
                 if (params.length < 2) continue;
 
-                TTransport transport = new TSocket(node.ip, node.port);
-                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-                Node.Client client = new Node.Client(protocol);
-
                 boolean withlog = params[params.length - 1].equals("-withlogs");
                 if (params[0].equals("set"))
                 {
                     if (withlog && params.length == 3 || !withlog && params.length == 2) //filename
                     {
                         File file = new File(params[1]);
-                        Scanner input = new Scanner(file);
-                        while (input.hasNext()) {
-                            String newLine = input.nextLine();
+                        Scanner fileInput = new Scanner(file);
+                        while (fileInput.hasNext()) {
+                            String newLine = fileInput.nextLine();
                             String[] data = newLine.split(":");
 
                             transport.open();
@@ -58,7 +58,7 @@ public class Client {
 
                             System.out.println("set: " + data[0] + " : " + data[1]);
                         }
-                        input.close();
+                        fileInput.close();
                     }
                     else //title genre
                     {
@@ -79,9 +79,8 @@ public class Client {
                     System.out.println("===============================================");
                 }
             }
-        } catch(TException e) {
+        } catch(Exception e) {
             e.printStackTrace();
         }
-
     }
 }

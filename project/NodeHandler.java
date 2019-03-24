@@ -3,15 +3,18 @@ import org.apache.thrift.server.*;
 import org.apache.thrift.protocol.*;
 import org.apache.thrift.transport.*;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
+import java.net.InetAddress;
 
 import java.io.*;
 import java.util.*;
 import java.lang.*;
 import java.math.*;
+import java.security.*;
+import java.util.Map.*;
 
 public class NodeHandler implements Node.Iface
 {
-    private TabelItem selfItem = new TableItem();
+    private TableItem selfItem = new TableItem();
     private String serverIP;
     private int serverPort;
     private List<TableItem> fingerTable = new ArrayList<>();
@@ -19,7 +22,7 @@ public class NodeHandler implements Node.Iface
     TableItem predecessor;
     private long maxNodeNum;
 
-    private static long hash(String input) {
+    private long hash(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(input.getBytes());
@@ -28,101 +31,106 @@ public class NodeHandler implements Node.Iface
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return 0;
     }
 
     boolean init(String serverIP, int serverPort, int port, NodeInfo helperNode)
     {
-        this.serverIP = serverIP;
-        this.serverPort = serverPort;
-        selfItem.nodeId = helperNode.newNodeId;
-        this.maxNodeNum = helperNode.maxNodeNum;
-        selfItem.ip = InetAddress.getLocalHost().getHostAddress();
-        selfItem.port = port;
+        try{
+            this.serverIP = serverIP;
+            this.serverPort = serverPort;
+            selfItem.nodeId = helperNode.newNodeId;
+            this.maxNodeNum = helperNode.maxNodeNum;
 
-        fingerTable.clear();
-        int m = int(Math.log(maxNodeNum) / Math.log(2));
+            selfItem.ip = InetAddress.getLocalHost().getHostAddress();
+            selfItem.port = port;
 
-        TableItem item = new TableItem();
-        item.ip = helperNode.ip;
-        item.port = helperNode.port;
-        item.nodeId = helperNode.nodeId;
+            fingerTable.clear();
+            int m = (int)(Math.log(maxNodeNum) / Math.log(2));
 
-        //first node
-        if (myNodeId == item.nodeId)
-        {
-            predecessor = item;
+            TableItem item = new TableItem();
+            item.ip = helperNode.ip;
+            item.port = helperNode.port;
+            item.nodeId = helperNode.nodeId;
 
+            //first node
+            if (selfItem.nodeId == item.nodeId)
+            {
+                predecessor = item;
+
+                for(int i = 0; i < m; i++)
+                {
+                    fingerTable.add(item);
+                }
+            }
+            else
+            {
+                //find succ
+                TTransport transport = new TSocket(item.ip, item.port);
+                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
+                Node.Client helperClient = new Node.Client(protocol);
+                transport.open();
+                TableItem succ = helperClient.getSuccOf((selfItem.nodeId+1) % maxNodeNum);
+                fingerTable.add(succ);
+
+                TTransport transport2 = new TSocket(succ.ip, succ.port);
+                TProtocol protocol2 = new TBinaryProtocol(new TFramedTransport(transport2));
+                Node.Client succClient = new Node.Client(protocol2);
+                transport2.open();
+                predecessor = succClient.getPred();
+                succClient.setPred(selfItem);
+                transport2.close();
+
+                for(int i = 1; i < m; i++)
+                {
+                    long nodeID = (long)(selfItem.nodeId + Math.pow(2, i)) % maxNodeNum;
+                    long startnode = selfItem.nodeId;
+                    long endnode = fingerTable.get(i-1).nodeId;
+                    if (isIn(nodeID, startnode, endnode) || nodeID == startnode)
+                    {
+                        fingerTable.add(fingerTable.get(i-1));
+                    }
+                    else
+                    {
+                        TableItem nodeItem = helperClient.getSuccOf(nodeID);
+                        fingerTable.add(nodeItem);
+                    }
+                }
+                transport.close();
+            }
+
+            //update
             for(int i = 0; i < m; i++)
             {
-                fingerTable.add(item);
-            }
-        }
-        else
-        {
-            //find succ
-            TTransport transport = new TSocket(item.ip, item.port);
-            TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-            Node.Client helperClient = new Node.Client(protocol);
-            transport.open();
-            TableItem succ = helperClient.getSucc((selfItem.nodeId+1) % maxNodeNum);
-            fingerTable.add(succ);
+                TableItem predecessor = getPredOf((long)(selfItem.nodeId - Math.pow(2, i)) % maxNodeNum);
 
-            TTransport transport2 = new TSocket(succ.ip, succ.port);
-            TProtocol protocol2 = new TBinaryProtocol(new TFramedTransport(transport));
+                TTransport transport = new TSocket(predecessor.ip, predecessor.port);
+                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
+                Node.Client predClient = new Node.Client(protocol);
+                transport.open();
+                predClient.updateDHT(selfItem, i);
+                transport.close();
+            }
+
+            //move key (pred, n]
+            TTransport transport2 = new TSocket(fingerTable.get(0).ip, fingerTable.get(0).port);
+            TProtocol protocol2 = new TBinaryProtocol(new TFramedTransport(transport2));
             Node.Client succClient = new Node.Client(protocol2);
             transport2.open();
-            predecessor = succClient.getPred();
-            succClient.setPred(selfItem);
+            Map<String, String> newData = succClient.removeDataBeforeNode(selfItem.nodeId);
             transport2.close();
+            data = newData;
 
-            for(int i = 1; i < m; i++)
-            {
-                long nodeID = (selfItem.nodeId + Math.pow(2, i)) % maxNodeNum;
-                long startnode = selfItem.nodeId;
-                long endnode = fingerTable.get(i-1).nodeId;
-                if (isIn(nodeID, startnode, endnode) || nodeID == startnode)
-                {
-                    fingerTable.add(fingerTable.get(i-1));
-                }
-                else
-                {
-                    TableItem nodeItem = helperClient.getSucc(nodeID);
-                    fingerTable.add(nodeItem);
-                }
-            }
-            transport.close();
-        }
-
-        //update
-        for(int i = 0; i < m; i++)
-        {
-            TableItem predecessor = getPredOf((selfItem.nodeId - Math.pow(2, i)) % maxNodeNum);
-
-            TTransport transport = new TSocket(predecessor.ip, predecessor.port);
+            //post join
+            TTransport transport = new TSocket(serverIP, serverPort);
             TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-            Node.Client predClient = new Node.Client(protocol);
+            SuperNode.Client serverClient = new SuperNode.Client(protocol);
             transport.open();
-            predClient.updateDHT(selfItem.nodeId, i);
+            serverClient.postJoin(selfItem.ip, port);
             transport.close();
+        }catch(Exception e) {
+            e.printStackTrace();
         }
-
-        //move key (pred, n]
-        TTransport transport2 = new TSocket(succ.ip, succ.port);
-        TProtocol protocol2 = new TBinaryProtocol(new TFramedTransport(transport));
-        Node.Client succClient = new Node.Client(protocol2);
-        transport2.open();
-        Map<String, String> newData = succClient.removeDataBeforeNode(selfItem.nodeId);
-        transport2.close();
-        data = newData;
-
-        //post join
-        TTransport transport = new TSocket(serverIP, serverPort);
-        TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-        SuperNode.Client serverClient = new SuperNode.Client(protocol);
-        transport.open();
-        serverClient.postJoin(InetAddress.getLocalHost().getHostAddress(), port);
-        transport.close();
-
         return true;
     }
 
@@ -130,7 +138,7 @@ public class NodeHandler implements Node.Iface
     public Map<String, String> removeDataBeforeNode(long nodeID) throws org.apache.thrift.TException
     {
         Map<String, String> ans = new HashMap<>();
-        for (Iterator<Map.entry<String, String>> itr = data.entrySet().iterator; itr.hasNext(); )
+        for (Iterator<Map.Entry<String, String>> itr = data.entrySet().iterator(); itr.hasNext(); )
         {
             Map.Entry<String, String> item = itr.next();
             String key = item.getKey();
@@ -145,7 +153,7 @@ public class NodeHandler implements Node.Iface
         return ans;
     }
 
-    bool isIn(long nodeID, long startnode, long endnode)
+    boolean isIn(long nodeID, long startnode, long endnode)
     {
         return (endnode > startnode && nodeID < endnode && nodeID > startnode || endnode < startnode && (nodeID < startnode
                 && nodeID < endnode || nodeID > startnode && nodeID > endnode));
@@ -266,7 +274,7 @@ public class NodeHandler implements Node.Iface
     @Override
     public TableItem getPredOf(long nodeID) throws org.apache.thrift.TException
     {
-        long startnode = selfItem.nodeId
+        long startnode = selfItem.nodeId;
         long endnode = fingerTable.get(0).nodeId;
         TableItem ans = selfItem;
         while (!(isIn(nodeID, startnode, endnode) || nodeID == endnode))

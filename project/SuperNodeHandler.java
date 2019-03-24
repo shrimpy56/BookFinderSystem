@@ -3,9 +3,12 @@ import org.apache.thrift.server.*;
 import org.apache.thrift.protocol.*;
 import org.apache.thrift.transport.*;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
+
 import java.io.*;
 import java.util.*;
 import java.lang.*;
+import java.math.*;
+import java.security.*;
 
 public class SuperNodeHandler implements SuperNode.Iface
 {
@@ -21,7 +24,7 @@ public class SuperNodeHandler implements SuperNode.Iface
         this.numOfNodes = numOfNodes;
     }
 
-    private static long hash(String input) {
+    private long hash(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(input.getBytes());
@@ -30,6 +33,7 @@ public class SuperNodeHandler implements SuperNode.Iface
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return 0;
     }
 
     @Override
