@@ -19,7 +19,7 @@ public class SuperNodeServer {
             //pass params in
             int port = Integer.parseInt(args[0]);
             //number of nodes
-            long numOfNodes = Math.pow(2, 10) - 1;//default value
+            long numOfNodes = Math.pow(2, 16) - 1;//default value
             if (args.length > 1)
             {
                 numOfNodes = Long.parseLong(args[1]);

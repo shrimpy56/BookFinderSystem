@@ -10,6 +10,7 @@ import java.lang.*;
 public class SuperNodeHandler implements SuperNode.Iface
 {
     private List<NodeInfo> nodeList = new ArrayList<>();
+    private HashSet<Long> idSet = new HashSet<>();
     private int port;
     private boolean bIsJoining = false;
     private long numOfNodes;
@@ -18,6 +19,17 @@ public class SuperNodeHandler implements SuperNode.Iface
     {
         this.port = port;
         this.numOfNodes = numOfNodes;
+    }
+
+    private static long hash(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(input.getBytes());
+
+            return new BigInteger(md.digest()).intValue() % numOfNodes;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -29,16 +41,22 @@ public class SuperNodeHandler implements SuperNode.Iface
             info.nack = true;
             return info;
         }
-        info.nack = false;
-
         bIsJoining = true;
 
-        random node
+        info.nack = false;
+        info.ip = ip;
+        info.port = port;
+        info.maxNodeNum = numOfNodes;
+        long newId = hash(ip+port);
+        while (idSet.contains(newId))
+            newId = (newId + 1) % numOfNodes;
+        idSet.add(newId);
+        info.nodeId = newId;
+        nodeList.add(info);
 
-
-        info.ip = ;
-        info.port = ;
-        return info;
+        NodeInfo randNode = getNode();
+        randNode.newNodeId = info.nodeId;
+        return randNode;
     }
 
     @Override
@@ -57,90 +75,5 @@ public class SuperNodeHandler implements SuperNode.Iface
         int idx = (int) (Math.random() * nodeList.size());
         return nodeList.get(idx);
     }
-
-//    @Override
-//    public Result sendTask(List<String> filenames) throws org.apache.thrift.TException
-//    {
-//        mapResults.clear();
-//        mapFilenames = filenames;
-//        sortFinished = false;
-//
-//        // timer
-//        long startTime = System.currentTimeMillis();
-//
-//        for (int i = 0; i < filenames.size(); ++i)
-//        {
-//            //if does not exist, exit
-//            File file = new File(filenames.get(i));
-//            if (!file.exists())
-//            {
-//                return null;
-//            }
-//
-//            boolean flag = true;
-//            while (flag) {
-//                int idx = (int) (Math.random() * nodeList.size());
-//
-//                TTransport transport = new TSocket(nodeList.get(idx).IP, nodeList.get(idx).port);
-//                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-//                ComputeNode.Client nodeClient = new ComputeNode.Client(protocol);
-//                transport.open();
-//                if (nodeClient.mapTask(filenames.get(i))) {
-//                    System.out.println("Map task successfully assigned on node "+ idx + ", address: " + nodeList.get(idx).IP + ":"+ nodeList.get(idx).port);
-//                    flag = false;
-//                }
-//                transport.close();
-//            }
-//        }
-//
-//        try {
-//            // waiting
-//            while (!sortFinished) {
-//                Thread.sleep(1);
-//            }
-//        } catch (Exception x) {
-//            x.printStackTrace();
-//        }
-//
-//        long timeUsed = System.currentTimeMillis() - startTime;
-//
-//        System.out.println("===============================================");
-//        System.out.println("Job finished, map task number: "+ mapFilenames.size() +", time used: " + timeUsed + "ms");
-//        System.out.println("===============================================");
-//
-//        Result res = new Result();
-//        res.filename = resultFilename;
-//        res.timeUsed = timeUsed;
-//        return res;
-//    }
-//
-//    @Override
-//    public void noticeFinishedMap(String resultFilename) throws org.apache.thrift.TException
-//    {
-//        if(resultFilename.isEmpty())
-//        {
-//            System.out.println("Map job met with some error, check if file exists.");
-//        }
-//        else
-//        {
-//            System.out.println("Map job finish: " + resultFilename);
-//        }
-//
-//
-//        mapResults.add(resultFilename);
-//
-//        if (mapResults.size() == mapFilenames.size())
-//        {
-//            //sort
-//            int idx = (int) (Math.random() * nodeList.size());
-//
-//            TTransport transport = new TSocket(nodeList.get(idx).IP, nodeList.get(idx).port);
-//            TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-//            ComputeNode.Client nodeClient = new ComputeNode.Client(protocol);
-//            transport.open();
-//            nodeClient.sortTask(mapResults);
-//            transport.close();
-//        }
-//    }
 }
 

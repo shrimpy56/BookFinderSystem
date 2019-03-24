@@ -12,17 +12,6 @@ import java.math.*;
 
 public class NodeServer {
 
-    private static long hash(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(input.getBytes());
-
-            return new BigInteger(md.digest()).intValue();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public static void main(String [] args) {
         try {
             // pass master server ip, server port, node port.
@@ -44,28 +33,19 @@ public class NodeServer {
                 return;
             }
 
-            long myNodeId = nodeInfo.newNodeId;
-
-            //todo
-
-            //todo
-            System.out.println("join finish.");
-
             //Create Thrift server socket
             TServerTransport serverTransport = new TServerSocket(port);
             TTransportFactory factory = new TFramedTransport.Factory();
 
             //Create service request handler
             NodeHandler handler = new NodeHandler();
-            handler.setData(serverIP, serverPort, myNodeId);
+            boolean initSuccess = handler.init(serverIP, serverPort, port, nodeInfo);
             Node.Processor processor = new Node.Processor(handler);
 
             //Set server arguments
             TThreadPoolServer.Args arguments = new TThreadPoolServer.Args(serverTransport);
             arguments.processor(processor);  //Set handler
             arguments.transportFactory(factory);  //Set FramedTransport (for performance)
-
-            //todo: void postJoin(1: string ip, 2: i32 port),
 
             System.out.println("Node running on: " + InetAddress.getLocalHost().getHostAddress() + ":" + port);
 
