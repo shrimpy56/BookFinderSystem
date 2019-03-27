@@ -13,7 +13,7 @@ struct NodeInfo
     4: bool nack,
     5: i64 newNodeId,
     6: i64 maxNodeNum,
-    7: TableItem predecessor,
+    //7: TableItem predecessor,
 }
 
 service SuperNode

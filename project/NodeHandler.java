@@ -18,7 +18,7 @@ public class NodeHandler implements Node.Iface
     private String serverIP;
     private int serverPort;
     private List<TableItem> fingerTable = new ArrayList<>();
-    private Map<String, String> data;// = new HashMap<>();
+    private Map<String, String> data;
     TableItem predecessor;
     private long maxNodeNum;
 
@@ -27,7 +27,7 @@ public class NodeHandler implements Node.Iface
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(input.getBytes());
 
-            return new BigInteger(md.digest()).intValue() % maxNodeNum;
+            return Math.abs(new BigInteger(md.digest()).intValue()) % maxNodeNum;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -36,6 +36,8 @@ public class NodeHandler implements Node.Iface
 
     boolean init(String serverIP, int serverPort, int port, NodeInfo helperNode)
     {
+        System.out.println("start init..");
+
         try{
             this.serverIP = serverIP;
             this.serverPort = serverPort;
@@ -62,66 +64,78 @@ public class NodeHandler implements Node.Iface
                 {
                     fingerTable.add(item);
                 }
+                data = new HashMap<>();
             }
             else
             {
-                //find succ
-                TTransport transport = new TSocket(item.ip, item.port);
-                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-                Node.Client helperClient = new Node.Client(protocol);
-                transport.open();
-                TableItem succ = helperClient.getSuccOf((selfItem.nodeId+1) % maxNodeNum);
-                fingerTable.add(succ);
+                {
+                    //find succ
+                    TTransport transport = new TSocket(item.ip, item.port);
+                    TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
+                    Node.Client helperClient = new Node.Client(protocol);
+                    transport.open();
+                    TableItem succ = helperClient.getSuccOf(selfItem.nodeId);
+                    fingerTable.add(succ);
 
-                TTransport transport2 = new TSocket(succ.ip, succ.port);
+                    TTransport transport2 = new TSocket(succ.ip, succ.port);
+                    TProtocol protocol2 = new TBinaryProtocol(new TFramedTransport(transport2));
+                    Node.Client succClient = new Node.Client(protocol2);
+                    transport2.open();
+                    predecessor = succClient.getPred();
+                    succClient.setPred(selfItem);
+                    transport2.close();
+
+                    for (int i = 1; i < m; i++) {
+                        long nodeID = (long) (selfItem.nodeId + Math.pow(2, i)) % maxNodeNum;
+                        long startnode = selfItem.nodeId;
+                        long endnode = fingerTable.get(i - 1).nodeId;
+                        if (isIn(nodeID, startnode, endnode) || nodeID == startnode) {
+                            fingerTable.add(fingerTable.get(i - 1));
+                        } else {
+                            TableItem nodeItem = helperClient.getSuccOf(nodeID);
+                            fingerTable.add(nodeItem);
+                        }
+                    }
+                    transport.close();
+                }
+
+                //System.out.println("build finish, update..");
+
+                //update
+                for(int i = 0; i < m; i++)
+                {
+                    TableItem pred = getPredOf((long)(selfItem.nodeId - Math.pow(2, i)) % maxNodeNum);
+
+                    if (pred.ip != selfItem.ip || pred.port != selfItem.port)
+                    {
+                        //System.out.println("about to update dht of predecessor..");
+
+                        TTransport transport = new TSocket(pred.ip, pred.port);
+                        TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
+                        Node.Client predClient = new Node.Client(protocol);
+                        transport.open();
+                        predClient.updateDHT(selfItem, i);
+                        transport.close();
+                    }
+                }
+
+                //System.out.println("start to move data..");
+
+                //move key (pred, n]
+                TTransport transport2 = new TSocket(fingerTable.get(0).ip, fingerTable.get(0).port);
                 TProtocol protocol2 = new TBinaryProtocol(new TFramedTransport(transport2));
                 Node.Client succClient = new Node.Client(protocol2);
                 transport2.open();
-                predecessor = succClient.getPred();
-                succClient.setPred(selfItem);
+                Map<String, String> newData = succClient.removeDataBeforeNode(selfItem.nodeId);
                 transport2.close();
-
-                for(int i = 1; i < m; i++)
-                {
-                    long nodeID = (long)(selfItem.nodeId + Math.pow(2, i)) % maxNodeNum;
-                    long startnode = selfItem.nodeId;
-                    long endnode = fingerTable.get(i-1).nodeId;
-                    if (isIn(nodeID, startnode, endnode) || nodeID == startnode)
-                    {
-                        fingerTable.add(fingerTable.get(i-1));
-                    }
-                    else
-                    {
-                        TableItem nodeItem = helperClient.getSuccOf(nodeID);
-                        fingerTable.add(nodeItem);
-                    }
-                }
-                transport.close();
+                data = newData;
             }
 
-            //update
-            for(int i = 0; i < m; i++)
-            {
-                TableItem predecessor = getPredOf((long)(selfItem.nodeId - Math.pow(2, i)) % maxNodeNum);
-
-                TTransport transport = new TSocket(predecessor.ip, predecessor.port);
-                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-                Node.Client predClient = new Node.Client(protocol);
-                transport.open();
-                predClient.updateDHT(selfItem, i);
-                transport.close();
-            }
-
-            //move key (pred, n]
-            TTransport transport2 = new TSocket(fingerTable.get(0).ip, fingerTable.get(0).port);
-            TProtocol protocol2 = new TBinaryProtocol(new TFramedTransport(transport2));
-            Node.Client succClient = new Node.Client(protocol2);
-            transport2.open();
-            Map<String, String> newData = succClient.removeDataBeforeNode(selfItem.nodeId);
-            transport2.close();
-            data = newData;
+            //test
+            printDHT();
 
             //post join
+            System.out.println("sending post join..");
             TTransport transport = new TSocket(serverIP, serverPort);
             TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
             SuperNode.Client serverClient = new SuperNode.Client(protocol);
@@ -155,6 +169,8 @@ public class NodeHandler implements Node.Iface
 
     boolean isIn(long nodeID, long startnode, long endnode)
     {
+        if (startnode == endnode)
+            return true;
         return (endnode > startnode && nodeID < endnode && nodeID > startnode || endnode < startnode && (nodeID < startnode
                 && nodeID < endnode || nodeID > startnode && nodeID > endnode));
     }
@@ -197,7 +213,10 @@ public class NodeHandler implements Node.Iface
             if (withLogs)
                 System.out.println("Getgenre done on node" + selfItem.nodeId);
 
-            return data.get(title);
+            if (data.containsKey(title))
+                return data.get(title);
+
+            return "error: cannot find " + title;
         }
         else
         {
@@ -220,19 +239,29 @@ public class NodeHandler implements Node.Iface
     @Override
     public void updateDHT(TableItem nodeInfo, int idx) throws org.apache.thrift.TException
     {
-        if (isIn(nodeInfo.nodeId, selfItem.nodeId, fingerTable.get(idx).nodeId))
-        {
-            fingerTable.set(idx, nodeInfo);
+        System.out.println("update node " + nodeInfo.nodeId + " on idx " + idx + " of node " + selfItem.nodeId);
 
-            TTransport transport = new TSocket(predecessor.ip, predecessor.port);
-            TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-            Node.Client predClient = new Node.Client(protocol);
-            transport.open();
-            predClient.updateDHT(nodeInfo, idx);
-            transport.close();
+        if (isIn(nodeInfo.nodeId, selfItem.nodeId, fingerTable.get(idx).nodeId) || nodeInfo.nodeId == selfItem.nodeId)
+        {
+            System.out.println("update idx " + idx + " ing.. ");
+
+            fingerTable.set(idx, nodeInfo);
 
             //test
             printDHT();
+
+            if ((predecessor.ip != selfItem.ip || predecessor.port != selfItem.port)
+                    && (nodeInfo.ip != predecessor.ip || nodeInfo.port != predecessor.port) )
+            {
+                TTransport transport = new TSocket(predecessor.ip, predecessor.port);
+                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
+                Node.Client predClient = new Node.Client(protocol);
+                transport.open();
+                predClient.updateDHT(nodeInfo, idx);
+                transport.close();
+            }
+
+            System.out.println("update idx " + idx + " finish.. ");
         }
     }
 
@@ -242,6 +271,7 @@ public class NodeHandler implements Node.Iface
         System.out.println("===============================================");
         System.out.println("Node ID: " + selfItem.nodeId);
         System.out.println("Range of keys: (" + predecessor.nodeId + ", " + selfItem.nodeId + "]");
+        System.out.println("Data size: " + data.size());
         System.out.println("Finger Table:");
         for(int i = 0; i < fingerTable.size(); i++)
         {
@@ -254,6 +284,11 @@ public class NodeHandler implements Node.Iface
     public TableItem getSuccOf(long nodeID) throws org.apache.thrift.TException
     {
         TableItem predecessor = getPredOf(nodeID);
+
+        if (predecessor.ip == selfItem.ip && predecessor.port == selfItem.port)
+        {
+            return getSucc();
+        }
 
         TTransport transport = new TSocket(predecessor.ip, predecessor.port);
         TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
@@ -279,21 +314,36 @@ public class NodeHandler implements Node.Iface
         TableItem ans = selfItem;
         while (!(isIn(nodeID, startnode, endnode) || nodeID == endnode))
         {
-            //get cloest finger preceding id
-            TTransport transport = new TSocket(ans.ip, ans.port);
-            TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
-            Node.Client client = new Node.Client(protocol);
-            transport.open();
-            ans = client.getClosestPredFinger(nodeID);
-            transport.close();
+            if (ans.ip == selfItem.ip && ans.port == selfItem.port)
+            {
+                ans = getClosestPredFinger(nodeID);
+            }
+            else
+            {
+                //get cloest finger preceding id
+                TTransport transport = new TSocket(ans.ip, ans.port);
+                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
+                Node.Client client = new Node.Client(protocol);
+                transport.open();
+                ans = client.getClosestPredFinger(nodeID);
+                transport.close();
+            }
 
-            //get successor
-            transport = new TSocket(ans.ip, ans.port);
-            protocol = new TBinaryProtocol(new TFramedTransport(transport));
-            client = new Node.Client(protocol);
-            transport.open();
-            TableItem succ = client.getSucc();
-            transport.close();
+            TableItem succ = null;
+            if (ans.ip == selfItem.ip && ans.port == selfItem.port)
+            {
+                succ = getSucc();
+            }
+            else
+            {
+                //get successor
+                TTransport transport = new TSocket(ans.ip, ans.port);
+                TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
+                Node.Client client = new Node.Client(protocol);
+                transport.open();
+                succ = client.getSucc();
+                transport.close();
+            }
 
             startnode = ans.nodeId;
             endnode = succ.nodeId;
@@ -304,7 +354,7 @@ public class NodeHandler implements Node.Iface
     @Override
     public TableItem getClosestPredFinger(long nodeID) throws org.apache.thrift.TException
     {
-        for(int i = fingerTable.size(); i >= 0; --i)
+        for(int i = fingerTable.size() - 1; i >= 0; --i)
         {
             if (isIn(fingerTable.get(i).nodeId, selfItem.nodeId, nodeID))
             {

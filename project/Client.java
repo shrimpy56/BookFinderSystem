@@ -62,6 +62,8 @@ public class Client {
                     }
                     else //title genre
                     {
+                        System.out.println("seting: " + params[1] + " : " + params[2]);
+
                         transport.open();
                         client.setGenre(params[1], params[2], withlog);
                         transport.close();

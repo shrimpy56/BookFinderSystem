@@ -41,13 +41,12 @@ public class NodeServer {
             NodeHandler handler = new NodeHandler();
             boolean initSuccess = handler.init(serverIP, serverPort, port, nodeInfo);
             Node.Processor processor = new Node.Processor(handler);
-
             //Set server arguments
             TThreadPoolServer.Args arguments = new TThreadPoolServer.Args(serverTransport);
             arguments.processor(processor);  //Set handler
             arguments.transportFactory(factory);  //Set FramedTransport (for performance)
 
-            System.out.println("Node running on: " + InetAddress.getLocalHost().getHostAddress() + ":" + port);
+            System.out.println("Node " + nodeInfo.newNodeId + " running on: " + InetAddress.getLocalHost().getHostAddress() + ":" + port);
 
             //Run server
             TServer server = new TThreadPoolServer(arguments);

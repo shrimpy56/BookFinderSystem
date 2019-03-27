@@ -42,7 +42,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
   private static final org.apache.thrift.protocol.TField NACK_FIELD_DESC = new org.apache.thrift.protocol.TField("nack", org.apache.thrift.protocol.TType.BOOL, (short)4);
   private static final org.apache.thrift.protocol.TField NEW_NODE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("newNodeId", org.apache.thrift.protocol.TType.I64, (short)5);
   private static final org.apache.thrift.protocol.TField MAX_NODE_NUM_FIELD_DESC = new org.apache.thrift.protocol.TField("maxNodeNum", org.apache.thrift.protocol.TType.I64, (short)6);
-  private static final org.apache.thrift.protocol.TField PREDECESSOR_FIELD_DESC = new org.apache.thrift.protocol.TField("predecessor", org.apache.thrift.protocol.TType.STRUCT, (short)7);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -56,7 +55,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
   public boolean nack; // required
   public long newNodeId; // required
   public long maxNodeNum; // required
-  public TableItem predecessor; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -65,8 +63,7 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     NODE_ID((short)3, "nodeId"),
     NACK((short)4, "nack"),
     NEW_NODE_ID((short)5, "newNodeId"),
-    MAX_NODE_NUM((short)6, "maxNodeNum"),
-    PREDECESSOR((short)7, "predecessor");
+    MAX_NODE_NUM((short)6, "maxNodeNum");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -93,8 +90,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
           return NEW_NODE_ID;
         case 6: // MAX_NODE_NUM
           return MAX_NODE_NUM;
-        case 7: // PREDECESSOR
-          return PREDECESSOR;
         default:
           return null;
       }
@@ -156,8 +151,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.MAX_NODE_NUM, new org.apache.thrift.meta_data.FieldMetaData("maxNodeNum", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.PREDECESSOR, new org.apache.thrift.meta_data.FieldMetaData("predecessor", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TableItem.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(NodeInfo.class, metaDataMap);
   }
@@ -171,8 +164,7 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     long nodeId,
     boolean nack,
     long newNodeId,
-    long maxNodeNum,
-    TableItem predecessor)
+    long maxNodeNum)
   {
     this();
     this.ip = ip;
@@ -186,7 +178,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     setNewNodeIdIsSet(true);
     this.maxNodeNum = maxNodeNum;
     setMaxNodeNumIsSet(true);
-    this.predecessor = predecessor;
   }
 
   /**
@@ -202,9 +193,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     this.nack = other.nack;
     this.newNodeId = other.newNodeId;
     this.maxNodeNum = other.maxNodeNum;
-    if (other.isSetPredecessor()) {
-      this.predecessor = new TableItem(other.predecessor);
-    }
   }
 
   public NodeInfo deepCopy() {
@@ -224,7 +212,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     this.newNodeId = 0;
     setMaxNodeNumIsSet(false);
     this.maxNodeNum = 0;
-    this.predecessor = null;
   }
 
   public String getIp() {
@@ -366,30 +353,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __MAXNODENUM_ISSET_ID, value);
   }
 
-  public TableItem getPredecessor() {
-    return this.predecessor;
-  }
-
-  public NodeInfo setPredecessor(TableItem predecessor) {
-    this.predecessor = predecessor;
-    return this;
-  }
-
-  public void unsetPredecessor() {
-    this.predecessor = null;
-  }
-
-  /** Returns true if field predecessor is set (has been assigned a value) and false otherwise */
-  public boolean isSetPredecessor() {
-    return this.predecessor != null;
-  }
-
-  public void setPredecessorIsSet(boolean value) {
-    if (!value) {
-      this.predecessor = null;
-    }
-  }
-
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case IP:
@@ -440,14 +403,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
       }
       break;
 
-    case PREDECESSOR:
-      if (value == null) {
-        unsetPredecessor();
-      } else {
-        setPredecessor((TableItem)value);
-      }
-      break;
-
     }
   }
 
@@ -470,9 +425,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
 
     case MAX_NODE_NUM:
       return getMaxNodeNum();
-
-    case PREDECESSOR:
-      return getPredecessor();
 
     }
     throw new IllegalStateException();
@@ -497,8 +449,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
       return isSetNewNodeId();
     case MAX_NODE_NUM:
       return isSetMaxNodeNum();
-    case PREDECESSOR:
-      return isSetPredecessor();
     }
     throw new IllegalStateException();
   }
@@ -570,15 +520,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
         return false;
     }
 
-    boolean this_present_predecessor = true && this.isSetPredecessor();
-    boolean that_present_predecessor = true && that.isSetPredecessor();
-    if (this_present_predecessor || that_present_predecessor) {
-      if (!(this_present_predecessor && that_present_predecessor))
-        return false;
-      if (!this.predecessor.equals(that.predecessor))
-        return false;
-    }
-
     return true;
   }
 
@@ -615,11 +556,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     list.add(present_maxNodeNum);
     if (present_maxNodeNum)
       list.add(maxNodeNum);
-
-    boolean present_predecessor = true && (isSetPredecessor());
-    list.add(present_predecessor);
-    if (present_predecessor)
-      list.add(predecessor);
 
     return list.hashCode();
   }
@@ -692,16 +628,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetPredecessor()).compareTo(other.isSetPredecessor());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetPredecessor()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.predecessor, other.predecessor);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     return 0;
   }
 
@@ -749,14 +675,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
     sb.append("maxNodeNum:");
     sb.append(this.maxNodeNum);
     first = false;
-    if (!first) sb.append(", ");
-    sb.append("predecessor:");
-    if (this.predecessor == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.predecessor);
-    }
-    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -764,9 +682,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
     // check for sub-struct validity
-    if (predecessor != null) {
-      predecessor.validate();
-    }
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -853,15 +768,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 7: // PREDECESSOR
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.predecessor = new TableItem();
-              struct.predecessor.read(iprot);
-              struct.setPredecessorIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -897,11 +803,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
       oprot.writeFieldBegin(MAX_NODE_NUM_FIELD_DESC);
       oprot.writeI64(struct.maxNodeNum);
       oprot.writeFieldEnd();
-      if (struct.predecessor != null) {
-        oprot.writeFieldBegin(PREDECESSOR_FIELD_DESC);
-        struct.predecessor.write(oprot);
-        oprot.writeFieldEnd();
-      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -938,10 +839,7 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
       if (struct.isSetMaxNodeNum()) {
         optionals.set(5);
       }
-      if (struct.isSetPredecessor()) {
-        optionals.set(6);
-      }
-      oprot.writeBitSet(optionals, 7);
+      oprot.writeBitSet(optionals, 6);
       if (struct.isSetIp()) {
         oprot.writeString(struct.ip);
       }
@@ -960,15 +858,12 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
       if (struct.isSetMaxNodeNum()) {
         oprot.writeI64(struct.maxNodeNum);
       }
-      if (struct.isSetPredecessor()) {
-        struct.predecessor.write(oprot);
-      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, NodeInfo struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(7);
+      BitSet incoming = iprot.readBitSet(6);
       if (incoming.get(0)) {
         struct.ip = iprot.readString();
         struct.setIpIsSet(true);
@@ -992,11 +887,6 @@ public class NodeInfo implements org.apache.thrift.TBase<NodeInfo, NodeInfo._Fie
       if (incoming.get(5)) {
         struct.maxNodeNum = iprot.readI64();
         struct.setMaxNodeNumIsSet(true);
-      }
-      if (incoming.get(6)) {
-        struct.predecessor = new TableItem();
-        struct.predecessor.read(iprot);
-        struct.setPredecessorIsSet(true);
       }
     }
   }

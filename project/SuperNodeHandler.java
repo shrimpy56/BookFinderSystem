@@ -29,7 +29,7 @@ public class SuperNodeHandler implements SuperNode.Iface
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(input.getBytes());
 
-            return new BigInteger(md.digest()).intValue() % numOfNodes;
+            return Math.abs(new BigInteger(md.digest()).intValue()) % numOfNodes;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -45,6 +45,7 @@ public class SuperNodeHandler implements SuperNode.Iface
             info.nack = true;
             return info;
         }
+        System.out.println("joining..");
         bIsJoining = true;
 
         info.nack = false;
@@ -52,8 +53,10 @@ public class SuperNodeHandler implements SuperNode.Iface
         info.port = port;
         info.maxNodeNum = numOfNodes;
         long newId = hash(ip+port);
-        while (idSet.contains(newId))
+        while (idSet.contains(newId)) {
+            System.out.println("node id collided, retry..");
             newId = (newId + 1) % numOfNodes;
+        }
         idSet.add(newId);
         info.nodeId = newId;
         nodeList.add(info);
@@ -66,6 +69,7 @@ public class SuperNodeHandler implements SuperNode.Iface
     @Override
     public void postJoin(String ip, int port) throws org.apache.thrift.TException
     {
+        System.out.println("post join..");
         bIsJoining = false;
     }
 
