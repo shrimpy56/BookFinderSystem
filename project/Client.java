@@ -52,6 +52,8 @@ public class Client {
                             String newLine = fileInput.nextLine();
                             String[] data = newLine.split(":");
 
+                            System.out.println("setting: " + data[0] + " : " + data[1]);
+
                             transport.open();
                             client.setGenre(data[0], data[1], withlog);
                             transport.close();
@@ -62,7 +64,7 @@ public class Client {
                     }
                     else //title genre
                     {
-                        System.out.println("seting: " + params[1] + " : " + params[2]);
+                        System.out.println("setting: " + params[1] + " : " + params[2]);
 
                         transport.open();
                         client.setGenre(params[1], params[2], withlog);

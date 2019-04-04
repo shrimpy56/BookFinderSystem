@@ -94,16 +94,10 @@ public class NodeHandler implements Node.Iface
                         long endnode = fingerTable.get(i - 1).nodeId;
                         if (isIn(nodeID, startnode, endnode) || nodeID == startnode) {
                             fingerTable.add(fingerTable.get(i - 1));
-                            //System.out.println("path1:"+fingerTable.get(i - 1).nodeId);
                         } else {
                             TableItem nodeItem = helperClient.getSuccOf(nodeID);
                             fingerTable.add(nodeItem);
-                            //System.out.println("path2:"+nodeItem.nodeId);
                         }
-//                        System.out.println("startID:"+nodeID);
-//                        System.out.println("currentNodeID:"+startnode);
-//                        System.out.println("prevTableNodeID:"+endnode);
-
                     }
                     transport.close();
                 }
@@ -192,13 +186,13 @@ public class NodeHandler implements Node.Iface
         if (isIn(key, predecessor.nodeId, selfItem.nodeId) || key == selfItem.nodeId)
         {
             if (withLogs)
-                System.out.println("Set genre done on node" + selfItem.nodeId);
+                System.out.println("Set genre done on node " + selfItem.nodeId);
 
             data.put(title, genre);
         }
         else
         {
-            TableItem finger = getClosestPredFinger(key);
+            TableItem finger = getSuccOf(key);
 
             if (withLogs)
                 System.out.println("Forward set genre to node " + finger.nodeId);
@@ -217,18 +211,13 @@ public class NodeHandler implements Node.Iface
     {
         long key = hash(title);
 
-        if (withLogs) {
-            if (predecessor == null)
-                System.out.println("predecessor = null");
-            else
-                System.out.println("predecessor =" + predecessor.nodeId);
-        }
-
+//        if (withLogs)
+//            System.out.println("get genre:key=" + key +",predecessor.nodeId="+ predecessor.nodeId+",selfItem.nodeId="+ selfItem.nodeId);
 
         if (isIn(key, predecessor.nodeId, selfItem.nodeId) || key == selfItem.nodeId)
         {
             if (withLogs)
-                System.out.println("Getgenre done on node" + selfItem.nodeId);
+                System.out.println("Getgenre done on node " + selfItem.nodeId);
 
             if (data.containsKey(title))
                 return data.get(title);
@@ -237,7 +226,7 @@ public class NodeHandler implements Node.Iface
         }
         else
         {
-            TableItem finger = getClosestPredFinger(key);
+            TableItem finger = getSuccOf(key);
 
             if (withLogs)
                 System.out.println("Forward getgenre to node " + finger.nodeId);
@@ -251,7 +240,6 @@ public class NodeHandler implements Node.Iface
 
             return ans;
         }
-        //return "xx";
     }
 
     @Override
@@ -270,14 +258,6 @@ public class NodeHandler implements Node.Iface
             //test
             printDHT();
 
-//            System.out.println("continue update idx " + idx + " on " + predecessor.nodeId);
-//            System.out.println("nodeInfo.ip = " + nodeInfo.ip);
-//            System.out.println("nodeInfo.port = " + nodeInfo.port);
-//            System.out.println("predecessor.ip = " + predecessor.ip);
-//            System.out.println("predecessor.port = " + predecessor.port);
-//            System.out.println("selfItem.ip = " + selfItem.ip);
-//            System.out.println("selfItem.port = " + selfItem.port);
-
             if ((predecessor.nodeId != selfItem.nodeId) && (nodeInfo.nodeId != predecessor.nodeId) )
             {
                 System.out.println("sending update dht request to " + predecessor.nodeId);
@@ -291,11 +271,6 @@ public class NodeHandler implements Node.Iface
             }
 
             System.out.println("update idx " + idx + " finish.. ");
-        }else
-        {
-            System.out.println("nodeInfo.nodeId = " + nodeInfo.nodeId);
-            System.out.println("selfItem.nodeId = " + selfItem.nodeId);
-            System.out.println("fingerTable.get("+idx+").nodeId = " + fingerTable.get(idx).nodeId);
         }
     }
 
