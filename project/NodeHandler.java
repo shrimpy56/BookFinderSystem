@@ -49,6 +49,7 @@ public class NodeHandler implements Node.Iface
 
             fingerTable.clear();
             int m = (int)(Math.log(maxNodeNum) / Math.log(2));
+            //System.out.println("m = " + m);
 
             TableItem item = new TableItem();
             item.ip = helperNode.ip;
@@ -58,6 +59,8 @@ public class NodeHandler implements Node.Iface
             //first node
             if (selfItem.nodeId == item.nodeId)
             {
+                System.out.println("first node.");
+
                 predecessor = item;
 
                 for(int i = 0; i < m; i++)
@@ -91,23 +94,28 @@ public class NodeHandler implements Node.Iface
                         long endnode = fingerTable.get(i - 1).nodeId;
                         if (isIn(nodeID, startnode, endnode) || nodeID == startnode) {
                             fingerTable.add(fingerTable.get(i - 1));
+                            //System.out.println("path1:"+fingerTable.get(i - 1).nodeId);
                         } else {
                             TableItem nodeItem = helperClient.getSuccOf(nodeID);
                             fingerTable.add(nodeItem);
+                            //System.out.println("path2:"+nodeItem.nodeId);
                         }
+//                        System.out.println("startID:"+nodeID);
+//                        System.out.println("currentNodeID:"+startnode);
+//                        System.out.println("prevTableNodeID:"+endnode);
+
                     }
                     transport.close();
                 }
 
-                //System.out.println("build finish, update..");
-
                 //update
                 for(int i = 0; i < m; i++)
                 {
-                    TableItem pred = getPredOf((long)(selfItem.nodeId - Math.pow(2, i)) % maxNodeNum);
+                    TableItem pred = getPredOf((long)(selfItem.nodeId - Math.pow(2, i) + maxNodeNum) % maxNodeNum);
 
-                    if (pred.ip != selfItem.ip || pred.port != selfItem.port)
+                    if (!pred.ip.equals(selfItem.ip) || pred.port != selfItem.port)
                     {
+                        System.out.println("update dht: pred of " + (long)(selfItem.nodeId - Math.pow(2, i) + maxNodeNum) % maxNodeNum + " is " + pred.nodeId);
                         //System.out.println("about to update dht of predecessor..");
 
                         TTransport transport = new TSocket(pred.ip, pred.port);
@@ -132,6 +140,7 @@ public class NodeHandler implements Node.Iface
             }
 
             //test
+            System.out.println("init DHT:");
             printDHT();
 
             //post join
@@ -183,7 +192,7 @@ public class NodeHandler implements Node.Iface
         if (isIn(key, predecessor.nodeId, selfItem.nodeId) || key == selfItem.nodeId)
         {
             if (withLogs)
-                System.out.println("Setgenre done on node" + selfItem.nodeId);
+                System.out.println("Set genre done on node" + selfItem.nodeId);
 
             data.put(title, genre);
         }
@@ -192,7 +201,7 @@ public class NodeHandler implements Node.Iface
             TableItem finger = getClosestPredFinger(key);
 
             if (withLogs)
-                System.out.println("Forward setgenre to node " + finger.nodeId);
+                System.out.println("Forward set genre to node " + finger.nodeId);
 
             TTransport transport = new TSocket(finger.ip, finger.port);
             TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
@@ -207,6 +216,14 @@ public class NodeHandler implements Node.Iface
     public String getGenre(String title, boolean withLogs) throws org.apache.thrift.TException
     {
         long key = hash(title);
+
+        if (withLogs) {
+            if (predecessor == null)
+                System.out.println("predecessor = null");
+            else
+                System.out.println("predecessor =" + predecessor.nodeId);
+        }
+
 
         if (isIn(key, predecessor.nodeId, selfItem.nodeId) || key == selfItem.nodeId)
         {
@@ -234,6 +251,7 @@ public class NodeHandler implements Node.Iface
 
             return ans;
         }
+        //return "xx";
     }
 
     @Override
@@ -241,7 +259,9 @@ public class NodeHandler implements Node.Iface
     {
         System.out.println("update node " + nodeInfo.nodeId + " on idx " + idx + " of node " + selfItem.nodeId);
 
-        if (isIn(nodeInfo.nodeId, selfItem.nodeId, fingerTable.get(idx).nodeId) || nodeInfo.nodeId == selfItem.nodeId)
+        //if (isIn(nodeInfo.nodeId, selfItem.nodeId, fingerTable.get(idx).nodeId) || nodeInfo.nodeId == selfItem.nodeId)
+        long nodeID = (long) (selfItem.nodeId + Math.pow(2, idx)) % maxNodeNum;
+        if (isIn(nodeID, fingerTable.get(idx).nodeId, nodeInfo.nodeId) || nodeID == nodeInfo.nodeId)
         {
             System.out.println("update idx " + idx + " ing.. ");
 
@@ -250,9 +270,18 @@ public class NodeHandler implements Node.Iface
             //test
             printDHT();
 
-            if ((predecessor.ip != selfItem.ip || predecessor.port != selfItem.port)
-                    && (nodeInfo.ip != predecessor.ip || nodeInfo.port != predecessor.port) )
+//            System.out.println("continue update idx " + idx + " on " + predecessor.nodeId);
+//            System.out.println("nodeInfo.ip = " + nodeInfo.ip);
+//            System.out.println("nodeInfo.port = " + nodeInfo.port);
+//            System.out.println("predecessor.ip = " + predecessor.ip);
+//            System.out.println("predecessor.port = " + predecessor.port);
+//            System.out.println("selfItem.ip = " + selfItem.ip);
+//            System.out.println("selfItem.port = " + selfItem.port);
+
+            if ((predecessor.nodeId != selfItem.nodeId) && (nodeInfo.nodeId != predecessor.nodeId) )
             {
+                System.out.println("sending update dht request to " + predecessor.nodeId);
+
                 TTransport transport = new TSocket(predecessor.ip, predecessor.port);
                 TProtocol protocol = new TBinaryProtocol(new TFramedTransport(transport));
                 Node.Client predClient = new Node.Client(protocol);
@@ -262,6 +291,11 @@ public class NodeHandler implements Node.Iface
             }
 
             System.out.println("update idx " + idx + " finish.. ");
+        }else
+        {
+            System.out.println("nodeInfo.nodeId = " + nodeInfo.nodeId);
+            System.out.println("selfItem.nodeId = " + selfItem.nodeId);
+            System.out.println("fingerTable.get("+idx+").nodeId = " + fingerTable.get(idx).nodeId);
         }
     }
 
@@ -285,7 +319,7 @@ public class NodeHandler implements Node.Iface
     {
         TableItem predecessor = getPredOf(nodeID);
 
-        if (predecessor.ip == selfItem.ip && predecessor.port == selfItem.port)
+        if (predecessor.ip.equals(selfItem.ip) && predecessor.port == selfItem.port)
         {
             return getSucc();
         }
@@ -314,7 +348,7 @@ public class NodeHandler implements Node.Iface
         TableItem ans = selfItem;
         while (!(isIn(nodeID, startnode, endnode) || nodeID == endnode))
         {
-            if (ans.ip == selfItem.ip && ans.port == selfItem.port)
+            if (ans.ip.equals(selfItem.ip) && ans.port == selfItem.port)
             {
                 ans = getClosestPredFinger(nodeID);
             }
@@ -330,7 +364,7 @@ public class NodeHandler implements Node.Iface
             }
 
             TableItem succ = null;
-            if (ans.ip == selfItem.ip && ans.port == selfItem.port)
+            if (ans.ip.equals(selfItem.ip) && ans.port == selfItem.port)
             {
                 succ = getSucc();
             }

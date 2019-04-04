@@ -45,8 +45,18 @@ public class SuperNodeHandler implements SuperNode.Iface
             info.nack = true;
             return info;
         }
+        if (nodeList.size() == numOfNodes)
+        {
+            System.out.println("No ID slot left for new node!");
+            info.nack = true;
+            return info;
+        }
+
         System.out.println("joining..");
+
         bIsJoining = true;
+
+        NodeInfo randNode = getNode();
 
         info.nack = false;
         info.ip = ip;
@@ -61,8 +71,10 @@ public class SuperNodeHandler implements SuperNode.Iface
         info.nodeId = newId;
         nodeList.add(info);
 
-        NodeInfo randNode = getNode();
+        if (randNode == null)
+            randNode = getNode();
         randNode.newNodeId = info.nodeId;
+
         return randNode;
     }
 
