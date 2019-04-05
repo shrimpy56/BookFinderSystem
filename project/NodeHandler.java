@@ -338,6 +338,8 @@ public class NodeHandler implements Node.Iface
                 transport.close();
             }
 
+            System.out.println("Forward get predecessor to node " + ans.nodeId);
+
             TableItem succ = null;
             if (ans.ip.equals(selfItem.ip) && ans.port == selfItem.port)
             {

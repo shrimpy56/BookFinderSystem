@@ -26,9 +26,9 @@ public class Client {
             NodeInfo node = superClient.getNode();
             transport.close();
 
-            System.out.println("Usage: set <title> <genre> [-withlogs]");
-            System.out.println("Usage: set <filename> [-withlogs]");
-            System.out.println("Usage: get <title> [-withlogs]");
+            System.out.println("Usage: set:<title>:<genre>[:-withlogs]");
+            System.out.println("Usage: set:<filename>[:-withlogs]");
+            System.out.println("Usage: get:<title>[:-withlogs]");
 
             transport = new TSocket(node.ip, node.port);
             protocol = new TBinaryProtocol(new TFramedTransport(transport));
@@ -38,7 +38,7 @@ public class Client {
             while (true)
             {
                 String line = input.nextLine();
-                String[] params = line.split(" ");
+                String[] params = line.split(":");
                 if (params.length < 2) continue;
 
                 boolean withlog = params[params.length - 1].equals("-withlogs");
